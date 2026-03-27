@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Archive Player</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Press Start 2P', monospace;
+      color: #e8f8e8;
+      background: url('https://opengameart.org/sites/default/files/WaterTileOcean.gif');
+      background-size: 128px 128px;
+      image-rendering: pixelated;
+    }
+
+    .overlay {
+      background: rgba(0, 20, 30, 0.75);
+      min-height: 100vh;
+      padding: 15px;
+    }
+
+    .container { max-width: 520px; margin: 0 auto; }
+
+    .header {
+      background: #081c15;
+      border: 4px solid #a8e0a8;
+      padding: 10px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    h1 { font-size: 12px; margin: 0; }
+
+    .panel {
+      background: #102820;
+      border: 4px solid #a8e0a8;
+      padding: 12px;
+      box-shadow: 0 0 0 4px #0b2e13;
+    }
+
+    .discography {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .album {
+      border: 3px solid #a8e0a8;
+      padding: 6px;
+      background: #183828;
+      cursor: pointer;
+    }
+
+    .album.active {
+      background: #2e5a3f;
+      outline: 2px solid #e8f8e8;
+    }
+
+    .album img {
+      width: 100%;
+      image-rendering: pixelated;
+    }
+
+    .album p {
+      font-size: 6px;
+      margin-top: 4px;
+      text-align: center;
+    }
+
+    .player {
+      margin-top: 12px;
+      background: #081c15;
+      border: 3px solid #a8e0a8;
+      padding: 10px;
+      font-size: 8px;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+
+    .btn {
+      border: 3px solid #a8e0a8;
+      padding: 6px 10px;
+      cursor: pointer;
+      background: #183828;
+    }
+
+    .btn:active { background: #2e5a3f; }
+
+    .cursor::after {
+      content: "_";
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .info {
+      margin-top: 12px;
+      border: 3px solid #a8e0a8;
+      padding: 10px;
+      font-size: 7px;
+      background: #102820;
+      min-height: 60px;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 6px;
+      margin-top: 10px;
+      opacity: 0.7;
+    }
+
+    @media (max-width: 500px) {
+      .discography { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="overlay">
+  <div class="container">
+
+    <div class="header">
+      <h1>ARCHIVE PLAYER</h1>
+    </div>
+
+    <div class="panel">
+
+      <div class="discography" id="discography"></div>
+
+      <div class="player">
+        <div id="screen" class="cursor">READY</div>
+
+        <div class="controls">
+          <div class="btn" onclick="play()">PLAY</div>
+          <div class="btn" onclick="stop()">STOP</div>
+        </div>
+      </div>
+
+      <div class="info" id="info"></div>
+
+    </div>
+
+    <div class="footer">SYSTEM ONLINE</div>
+
+  </div>
+</div>
+
+<script>
+  const albums = [
+    { title: "ALBUM 01", audio: "audio/empathy2.2.mp3", info: "🎧 PRODUCER  🎚 ENGINEER  ✍ WRITER", art: "images/wlog.jpg" },
+    { title: "ALBUM 02", audio: "audio/track2.mp3", info: "🎧 PRODUCER  ✍ WRITER", art: "images/album2.png" },
+    { title: "ALBUM 03", audio: "audio/track3.mp3", info: "🎧 PRODUCER", art: "images/album3.png" },
+    { title: "ALBUM 04", audio: "audio/track4.mp3", info: "🎚 ENGINEER", art: "images/album4.png" },
+    { title: "ALBUM 05", audio: "audio/track5.mp3", info: "✍ WRITER", art: "images/album5.png" },
+    { title: "ALBUM 06", audio: "audio/track6.mp3", info: "🎧 PRODUCER", art: "images/album6.png" },
+    { title: "ALBUM 07", audio: "audio/track7.mp3", info: "🎚 ENGINEER", art: "images/album7.png" },
+    { title: "ALBUM 08", audio: "audio/track8.mp3", info: "🎧 PRODUCER  ✍ WRITER", art: "images/album8.png" }
+  ];
+
+  const discographyEl = document.getElementById("discography");
+  let current = null;
+  let audio = new Audio();
+  audio.preload = "auto";
+
+  // Preload audio (lightweight optimization)
+  albums.forEach(a => {
+    const preloadAudio = new Audio();
+    preloadAudio.src = a.audio;
+  });
+
+  function typeText(text, el) {
+    el.innerText = "";
+    let i = 0;
+    const interval = setInterval(() => {
+      el.innerText += text[i];
+      i++;
+      if (i >= text.length) clearInterval(interval);
+    }, 20);
+  }
+
+  function renderAlbums() {
+    albums.forEach((album, index) => {
+      const div = document.createElement("div");
+      div.className = "album";
+      div.innerHTML = `
+        <img src="${album.art}">
+        <p>${album.title}</p>
+      `;
+      div.onclick = () => selectAlbum(index, div);
+      discographyEl.appendChild(div);
+    });
+  }
+
+  function selectAlbum(index, el) {
+    document.querySelectorAll('.album').forEach(a => a.classList.remove('active'));
+    el.classList.add('active');
+
+    current = albums[index];
+
+    typeText("> LOADING...", document.getElementById("screen"));
+
+    setTimeout(() => {
+      audio.src = current.audio;
+      typeText("> LOADED " + current.title, document.getElementById("screen"));
+      typeText("> " + current.info, document.getElementById("info"));
+    }, 400);
+  }
+
+  function play() {
+    if (!current) return;
+    audio.play();
+    typeText("> PLAYING", document.getElementById("screen"));
+  }
+
+  function stop() {
+    audio.pause();
+    audio.currentTime = 0;
+    typeText("> STOPPED", document.getElementById("screen"));
+  }
+
+  renderAlbums();
+</script>
+
+</body>
+</html>
