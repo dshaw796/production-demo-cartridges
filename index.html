@@ -61,8 +61,6 @@ h1 {font-size:12px;margin:0;display:inline-block;text-shadow:0 0 4px #a8e0a8;}
 .cursor-arrow {position:absolute;width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:6px solid #fff;animation:float 0.5s infinite alternate;pointer-events:none;} 
 @keyframes float {from{transform:translateY(-1px);}to{transform:translateY(1px);}}
 
-/* external module */
-/* Windows 95 style external module */
 .external-module {
   display:none;
   margin:12px;
@@ -74,7 +72,6 @@ h1 {font-size:12px;margin:0;display:inline-block;text-shadow:0 0 4px #a8e0a8;}
     3px 3px 0px #000;
   font-family:Tahoma, Verdana, sans-serif;
 }
-
 
 .external-header {
   display:flex;
@@ -113,7 +110,6 @@ h1 {font-size:12px;margin:0;display:inline-block;text-shadow:0 0 4px #a8e0a8;}
 .win-btn:active {
   box-shadow:inset 1px 1px #fff, inset -1px -1px #808080;
 }
-
 
 .external-body {
   padding:6px;
@@ -195,17 +191,41 @@ const albums=[
 {title:"08 TCSN",audio:"audio/tcsn.mp3",info:"SONG: TOUCHSCREEN\nARTIST: WATERLOG\nCREDITS: PRODUCTION, PERFORMING, SONGWRITING",art:"images/tcsn.png"}
 ];
 
+// Pre-load all local audio files into Audio objects up front
+const audioCache = {};
+albums.forEach(album => {
+  if (album.audio) {
+    const a = new Audio();
+    a.preload = "auto";
+    a.src = album.audio;
+    audioCache[album.audio] = a;
+  }
+});
+
+// Also preload the UI sound effects
+let clickSound, whirrSound;
+try {
+  clickSound = new Audio('audio/click.mp3');
+  clickSound.preload = "auto";
+  whirrSound = new Audio('audio/whirr.mp3');
+  whirrSound.preload = "auto";
+} catch(e) {
+  clickSound = { play:()=>{}, currentTime:0 };
+  whirrSound = { play:()=>{}, currentTime:0 };
+}
+
 const discographyEl=document.getElementById("discography");
 const cursorEl=document.getElementById("cursor");
 let current=null;let currentEl=null;
 let audio=new Audio();
-let clickSound, whirrSound;
-try {
-  clickSound = new Audio('audio/click.mp3');
-  whirrSound = new Audio('audio/whirr.mp3');
-} catch(e) {
-  clickSound = { play:()=>{}, currentTime:0 };
-  whirrSound = { play:()=>{}, currentTime:0 };
+
+// Throttle: block repeated clicks within 500ms
+let lastClick = 0;
+function isThrottled() {
+  const now = Date.now();
+  if (now - lastClick < 500) return true;
+  lastClick = now;
+  return false;
 }
 
 function typeTextLines(lines,el){
@@ -249,7 +269,8 @@ function moveCursor(el){
 }
 
 function selectAlbum(index,el){
-  // always stop any currently playing local audio when switching
+  if(isThrottled()) return;
+
   audio.pause();
   audio.currentTime = 0;
   current=albums[index];
@@ -269,7 +290,7 @@ function selectAlbum(index,el){
       sound.currentTime = 0;
       sound.play();
     } catch(e){}
-}
+  }
 
   if(currentEl) currentEl.classList.remove('loaded');
   currentEl=el;
@@ -285,7 +306,10 @@ function selectAlbum(index,el){
     const header=document.getElementById("externalHeader");
 
     if(current.audio){
-      audio.src=current.audio;
+      // Swap in the pre-loaded Audio object from cache
+      audio = audioCache[current.audio];
+      audio.pause();
+      audio.currentTime = 0;
       external.style.display="none";
       frame.src="";
       document.getElementById("screen").textContent="> LOADED "+current.title;
