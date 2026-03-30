@@ -52,6 +52,12 @@ h1 {font-size:12px;margin:0;display:inline-block;text-shadow:0 0 4px #a8e0a8;}
 .album img {width:100%;image-rendering:pixelated;border:2px solid #333;} 
 .album p {font-size:6px;margin-top:4px;text-align:center;color:#000;}
 
+.btn.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: #0f241b;
+}
+
 .cursor-arrow {position:absolute;width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:6px solid #fff;animation:float 0.5s infinite alternate;pointer-events:none;} 
 @keyframes float {from{transform:translateY(-1px);}to{transform:translateY(1px);}}
 
@@ -193,11 +199,13 @@ const discographyEl=document.getElementById("discography");
 const cursorEl=document.getElementById("cursor");
 let current=null;let currentEl=null;
 let audio=new Audio();
-let clickSound;
+let clickSound, whirrSound;
 try {
   clickSound = new Audio('audio/click.mp3');
+  whirrSound = new Audio('audio/whirr.mp3');
 } catch(e) {
   clickSound = { play:()=>{}, currentTime:0 };
+  whirrSound = { play:()=>{}, currentTime:0 };
 }
 
 function typeTextLines(lines,el){
@@ -245,13 +253,23 @@ function selectAlbum(index,el){
   audio.pause();
   audio.currentTime = 0;
   current=albums[index];
+  
+  const buttons = document.querySelectorAll(".btn");
 
-  if(clickSound){
-    try {
-      clickSound.currentTime = 0;
-      clickSound.play();
-    } catch(e){}
+  if(current.spotify){
+    buttons.forEach(btn => btn.classList.add("disabled"));
+  } else {
+    buttons.forEach(btn => btn.classList.remove("disabled"));
   }
+
+  const sound = current.spotify ? whirrSound : clickSound;
+
+  if(sound){
+    try {
+      sound.currentTime = 0;
+      sound.play();
+    } catch(e){}
+}
 
   if(currentEl) currentEl.classList.remove('loaded');
   currentEl=el;
@@ -296,8 +314,20 @@ function selectAlbum(index,el){
   },400);
 }
 
-function play(){ if(!current)return; if(current.audio){audio.play(); document.getElementById("screen").textContent="> PLAYING";} }
-function stop(){ audio.pause(); audio.currentTime=0; document.getElementById("screen").textContent="> STOPPED"; }
+function play(){
+  if(!current || current.spotify) return;
+  if(current.audio){
+    audio.play();
+    document.getElementById("screen").textContent="> PLAYING";
+  }
+}
+
+function stop(){
+  if(current && current.spotify) return;
+  audio.pause();
+  audio.currentTime=0;
+  document.getElementById("screen").textContent="> STOPPED";
+}
 
 renderAlbums();
 </script>
