@@ -77,7 +77,7 @@ h1 {font-size:12px;margin:0;display:inline-block;text-shadow:0 0 4px #a8e0a8;}
   display:flex;
   justify-content:space-between;
   align-items:center;
-  font-size:11px;
+  font-size:8px;
   padding:4px 6px;
   background:linear-gradient(to right, #000080, #1084d0);
   color:#fff;
@@ -85,8 +85,7 @@ h1 {font-size:12px;margin:0;display:inline-block;text-shadow:0 0 4px #a8e0a8;}
 }
 
 .external-title {
-  font-weight:bold;
-  letter-spacing:0.5px;
+  letter-spacing:0.3px;
 }
 
 .external-buttons {
@@ -322,7 +321,7 @@ function selectAlbum(index,el){
         document.getElementById("screen").textContent="> CONNECTING...";
 
         setTimeout(()=>{
-          header.textContent="EXTERNAL STREAM CONNECTED";
+          header.textContent="::EXTERNAL STREAM CONNECTED";
           frame.src=current.spotify;
           external.style.display="block";
         },400);
